@@ -31,16 +31,29 @@ int main(int argc, char **argv) {
 
     int number_of_lines = 0;
     struct Line lines[LINES_MAX_LENGTH];
-
     int ch;
     char str[LINE_MAX_LENGTH + 1];
     int str_length = 0;
-    while (1) {
-        ch = getchar();
-        if (ch == EOF) {
-            break;
+
+    while((ch = getchar()) != EOF){
+        if(ch == '\r'){
+            if((ch = getchar()) == '\n'){
+                str[str_length] = '\0';
+                str_length = 0;
+                lines[number_of_lines].index = number_of_lines;
+                lines[number_of_lines].occurrences = count_occurrences(str, substring);
+                number_of_lines++;
+            } else{
+                str[str_length] = '\0';
+                str_length = 0;
+                lines[number_of_lines].index = number_of_lines;
+                lines[number_of_lines].occurrences = count_occurrences(str, substring);
+                number_of_lines++;
+                str[str_length++] = (char) ch;
+            }
+            continue;
         }
-        if (ch == '\r' || ch == '\n') {
+        if(ch == '\n'){
             str[str_length] = '\0';
             str_length = 0;
             lines[number_of_lines].index = number_of_lines;
@@ -48,10 +61,8 @@ int main(int argc, char **argv) {
             number_of_lines++;
             continue;
         }
-
         str[str_length++] = (char) ch;
     }
-
     if (str_length > 0) {
         str[str_length] = '\0';
         lines[number_of_lines].index = number_of_lines;

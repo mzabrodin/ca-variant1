@@ -35,15 +35,15 @@ int main(int argc, char **argv) {
     char str[LINE_MAX_LENGTH + 1];
     int str_length = 0;
 
-    while((ch = getchar()) != EOF){
-        if(ch == '\r'){
-            if((ch = getchar()) == '\n'){
+    while ((ch = getchar()) != EOF) {
+        if (ch == '\r') {
+            if ((ch = getchar()) == '\n') {
                 str[str_length] = '\0';
                 str_length = 0;
                 lines[number_of_lines].index = number_of_lines;
                 lines[number_of_lines].occurrences = count_occurrences(str, substring);
                 number_of_lines++;
-            } else{
+            } else {
                 str[str_length] = '\0';
                 str_length = 0;
                 lines[number_of_lines].index = number_of_lines;
@@ -51,9 +51,11 @@ int main(int argc, char **argv) {
                 number_of_lines++;
                 str[str_length++] = (char) ch;
             }
+
             continue;
         }
-        if(ch == '\n'){
+
+        if (ch == '\n') {
             str[str_length] = '\0';
             str_length = 0;
             lines[number_of_lines].index = number_of_lines;
@@ -61,8 +63,10 @@ int main(int argc, char **argv) {
             number_of_lines++;
             continue;
         }
+
         str[str_length++] = (char) ch;
     }
+
     if (str_length > 0) {
         str[str_length] = '\0';
         lines[number_of_lines].index = number_of_lines;

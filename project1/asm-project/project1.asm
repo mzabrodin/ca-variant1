@@ -40,7 +40,8 @@ read_next:
     jnz read_next ; if ax != 0 then read next byte
     mov byte ptr [bx], 0
     call count_occurrences_substring_m
-    jmp output_occurrences
+
+    call sort
 
 output_occurrences:
     mov si, offset occurrences
@@ -196,6 +197,33 @@ end_reverse:
     pop ax               ; Restore AX register
     ret
 convert_to_string ENDP
+
+sort PROC             ; bubble sort algorithm of occurrences number in occurrences array
+    xor cx, cx
+    mov cl, occurrences_length
+    dec cx            ; count-1
+outerLoop:
+    push cx
+    lea si, occurrences
+    xor cx, cx       ; Reset loop counter for inner loop
+    mov cl, occurrences_length
+    dec cx           ; count-1
+innerLoop:
+    mov ax, [si]     ; Load the count of occurrences (higher part) of current item
+    mov bx, [si+2]   ; Load the count of occurrences (higher part) of next item
+    cmp ah, bh       ; Compare counts
+    jle nextStep     ; If the count of the next item is greater, proceed to next step
+    ; Swap occurrences
+    mov [si], bx     ; Store the count of occurrences of next item
+    mov [si+2], ax   ; Store the count of occurrences of current item
+nextStep:
+    add si, 2         ; Move to the next item (each item is 4 bytes)
+    loop innerLoop    ; Repeat the inner loop until all elements are compared
+    pop cx            ; Restore the outer loop counter
+    loop outerLoop    ; Repeat the outer loop until all elements are sorted
+    ret
+sort ENDP
+
 
 
 end main

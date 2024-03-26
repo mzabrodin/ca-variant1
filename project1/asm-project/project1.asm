@@ -2,17 +2,16 @@
 .stack 100h
 
 .data
-    result db 6 dup('$')
-    occurrences dw 100 dup(0)
-
     string_length db 0
     string db 255 dup(0)
     
-    substring db 255 dup(0)
     substring_length db 0
-    
-    
+    substring db 255 dup(0)
+
     occurrences_length db 0
+    occurrences dw 100 dup(0)
+    
+    word_str db 6 dup('$')
 
 .code
 main PROC
@@ -23,72 +22,46 @@ main PROC
 
     call read_argument
 
-read_line:
-    mov string_length, 0
-read_next:
-    mov ah, 3Fh ; read from file
-    mov bx, 0h  ; stdin handle
-    mov cx, 1   ; 1 byte to read
-    mov dx, offset string   ; read to ds:dx
-    add dl, string_length
-    int 21h   ;  ax = number of bytes read
-    inc string_length
-    mov bx, dx
-    cmp byte ptr [bx], 0Ah ; if dl == 0Ah then
-    je count_occurrences_substring
+read_line_loop:
+    call read_line
+    push ax
+
+    call count_substring_occurrences
+
+    pop ax
     or ax, ax
-    jnz read_next ; if ax != 0 then read next byte
-    mov byte ptr [bx], 0
-    call count_occurrences_substring_m
+    jnz read_line_loop
+read_line_loop_end:
 
-    call sort
-
-output_occurrences:
-    mov si, offset occurrences
-    xor cx, cx
-    mov cl, occurrences_length
-output_occurrences_loop:
-    mov bx, [si]
-
-    xor ax, ax
-    mov al, bh
-    call convert_to_string
-    mov ah, 09h
-    mov dx, offset result
-    int 21h
-
-    mov ah, 02h
-    mov dl, ' '
-    int 21h
-
-    xor ax, ax
-    mov al, bl
-    call convert_to_string
-    mov ah, 09h
-    mov dx, offset result
-    int 21h
-
-    mov ah, 02h
-    mov dl, 0Dh
-    int 21h
-    mov dl, 0Ah
-    int 21h
-
-    add si, 2
-    loop output_occurrences_loop
-    jmp end_program
-
-
-count_occurrences_substring:
-    mov byte ptr [bx], 0
-    call count_occurrences_substring_m
-    jmp read_line
+    call sort_occurrences
+    call print_occurrences
 
 end_program:
     mov ah, 4Ch
     int 21h
 
 main ENDP
+
+read_line PROC
+    mov string_length, 0
+next_char:
+    mov ah, 3Fh ; read from file
+    mov bx, 0h  ; stdin handle
+    mov cx, 1   ; 1 byte to read
+    mov dx, offset string   ; read to ds:dx
+    add dl, string_length
+    int 21h   ;  ax = number of bytes read
+
+    inc string_length
+    mov bx, dx
+    cmp byte ptr [bx], 0Ah ; if dl == 0Ah then
+    je read_line_end
+    or ax, ax
+    jnz next_char ; if ax != 0 then read next byte
+read_line_end:
+    mov byte ptr [bx], 0
+    ret
+read_line ENDP
 
 read_argument PROC
     xor ch, ch
@@ -110,7 +83,7 @@ read_substring_end:
     ret
 read_argument ENDP
 
-count_occurrences_substring_m PROC
+count_substring_occurrences PROC
     xor cx, cx            ; Initialize counter for occurrences
     mov bx, offset string ; Initialize pointer to the start of the string
 outer_loop:
@@ -119,7 +92,8 @@ outer_loop:
     mov dh, substring_length ; Set DH to the length of the substring
 inner_loop:
     mov al, [si]         ; Load character from string
-    cmp al, [di]         ; Compare with corresponding character in substring
+    mov ah, [di]         ; Load character from string
+    cmp al, ah           ; Compare with corresponding character in substring
     jne not_matched      ; If not matching, jump to check the next substring
     inc si               ; Move to the next character in the string
     inc di               ; Move to the next character in the substring
@@ -144,7 +118,7 @@ not_matched:
     mov [si], ax
     inc occurrences_length
     ret
-count_occurrences_substring_m ENDP
+count_substring_occurrences ENDP
 
 convert_to_string PROC
     push ax             ; Preserve AX register
@@ -154,7 +128,7 @@ convert_to_string PROC
 
     mov bx, 10          ; BX will be used as divisor
 
-    mov di, offset result   ; DI points to the result buffer
+    mov di, offset word_str   ; DI points to the word_str buffer
     mov cx, 0           ; Counter for number of digits
     
 convert_loop:
@@ -162,8 +136,8 @@ convert_loop:
     div bx              ; Divide AX by BX, quotient in AX, remainder in DX
 
     add dl, '0'         ; Convert remainder to ASCII
-    mov [di], dl        ; Store ASCII digit in result buffer
-    inc di              ; Move to next position in result buffer
+    mov [di], dl        ; Store ASCII digit in word_str buffer
+    inc di              ; Move to next position in word_str buffer
 
     inc cx              ; Increment digit counter
     
@@ -171,7 +145,7 @@ convert_loop:
     jnz convert_loop    ; If not, continue looping
 
     ; Reverse the string
-    mov si, offset result  ; SI points to the beginning of the string
+    mov si, offset word_str  ; SI points to the beginning of the string
     mov di, cx           ; DI holds the number of digits
     dec di               ; Decrement DI to get the index of the last character
     
@@ -187,7 +161,7 @@ reverse_loop:
     jmp reverse_loop     ; Repeat the loop
 
 end_reverse:
-    mov si, offset result ; SI points to the beginning of the string
+    mov si, offset word_str ; SI points to the beginning of the string
     add si, cx           ; Move SI to the end of the string
     mov byte ptr [si], '$'          ; Add '$' as the string terminator
 
@@ -198,7 +172,7 @@ end_reverse:
     ret
 convert_to_string ENDP
 
-sort PROC             ; bubble sort algorithm of occurrences number in occurrences array
+sort_occurrences PROC             ; bubble sort algorithm of occurrences number in occurrences array
     xor cx, cx
     mov cl, occurrences_length
     dec cx            ; count-1
@@ -222,8 +196,43 @@ nextStep:
     pop cx            ; Restore the outer loop counter
     loop outerLoop    ; Repeat the outer loop until all elements are sorted
     ret
-sort ENDP
+sort_occurrences ENDP
 
+print_occurrences PROC
+    mov si, offset occurrences
+    xor cx, cx
+    mov cl, occurrences_length
+print_occurrences_loop:
+    mov bx, [si]
 
+    xor ax, ax
+    mov al, bh
+    call convert_to_string
+    mov ah, 09h
+    mov dx, offset word_str
+    int 21h
+
+    mov ah, 02h
+    mov dl, ' '
+    int 21h
+
+    xor ax, ax
+    mov al, bl
+    call convert_to_string
+    mov ah, 09h
+    mov dx, offset word_str
+    int 21h
+
+    mov ah, 02h
+    mov dl, 0Dh
+    int 21h
+    mov dl, 0Ah
+    int 21h
+
+print_occurrences_loop_end:
+    add si, 2
+    loop print_occurrences_loop
+    ret
+print_occurrences ENDP
 
 end main

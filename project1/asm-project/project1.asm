@@ -205,6 +205,9 @@ print_occurrences PROC
 print_occurrences_loop:
     mov bx, [si]
 
+    cmp bh, 0
+    je print_occurrences_loop_end
+
     xor ax, ax
     mov al, bh
     call convert_to_string

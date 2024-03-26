@@ -2,6 +2,8 @@
 .stack 100h
 
 .data
+    word_str db 6 dup('$')
+
     string_length db 0
     string db 255 dup(0)
     
@@ -11,8 +13,6 @@
     occurrences_length db 0
     occurrences dw 100 dup(0)
     
-    word_str db 6 dup('$')
-
 .code
 main PROC
     mov ax, ds

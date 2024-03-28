@@ -2,6 +2,9 @@
 .stack 100h
 
 .data
+    char               db 0
+    prev_char          db 0
+
     word_str           db 6 dup('$')
 
     string_length      db 0
@@ -43,25 +46,43 @@ main PROC
 main ENDP
 
 read_line PROC
+                                mov  prev_char, 0
                                 mov  string_length, 0
     next_char:                  
                                 mov  ah, 3Fh                        ; read from file
                                 mov  bx, 0h                         ; stdin handle
                                 mov  cx, 1                          ; 1 byte to read
-                                mov  dx, offset string              ; read to ds:dx
-                                add  dl, string_length
-                                int  21h                            ;  ax = number of bytes read
+                                lea  dx, char                       ; read to ds:dx
+                                int  21h                            ; ax = number of bytes read
+
+                                or   ax, ax
+                                jz   read_line_end
+
+                                cmp  char, 0Ah
+                                je   lf
+
+                                mov  bx, offset string
+                                add  bl, string_length
+                                mov  al, char
+                                mov  byte ptr [bx], al
 
                                 inc  string_length
-                                mov  bx, dx
-                                cmp  byte ptr [bx], 0Ah             ; if dl == 0Ah then
-                                je   read_line_end
-                                or   ax, ax
-                                jnz  next_char                      ; if ax != 0 then read next byte
+                                mov  prev_char, al
+                                jmp  next_char
+
+    lf:                         
+                                cmp  prev_char, 0Dh
+                                jne  read_line_end
+                                dec  string_length
+                                jmp  read_line_end
+    
     read_line_end:              
+                                mov  bx, offset string
+                                add  bl, string_length
                                 mov  byte ptr [bx], 0
                                 ret
 read_line ENDP
+
 
 read_argument PROC
                                 xor  ch, ch

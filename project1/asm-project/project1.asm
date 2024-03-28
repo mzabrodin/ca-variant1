@@ -146,8 +146,9 @@ convert_loop:
 
     ; Reverse the string
     mov si, offset word_str  ; SI points to the beginning of the string
-    mov di, cx           ; DI holds the number of digits
-    dec di               ; Decrement DI to get the index of the last character
+    mov di, offset word_str  ; DI holds the number of digits
+    add di, cx
+    dec di                   ; Decrement DI to get the index of the last character
     
 reverse_loop:
     cmp si, di           ; Compare SI with DI
